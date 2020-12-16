@@ -8,4 +8,80 @@
 
 \begin{document}
   \maketitle
+
+  \section{Assess the System}
+  I began reviewing the system by using nmap to perform port scans.
+  The server was identified as a Debian (10 or greater) server with the following open ports:
+  \begin{itemize}
+    \item 22 - SSH
+    \item 80 - HTTP (nginx)
+    \item 443 - HTTPS (nginx)
+  \end{itemize}
+  In addition, the following ports are filtered:
+  \begin{itemize}
+    \item 135
+    \item 139
+  \end{itemize}
+
+  \subsection{Port 22 - SSH}
+  Ideally this port should only be open if it is really required.
+  If it is not completely necessary, then disable SSH.
+
+  Only public key encryption is enabled, which reduces the risks as brute-forcing passwords is not possible.
+  It is imperative that the public keys are kept secure on the devices where they are stored.
+  If encrypted hard-drives are not already part of the security policy, they should be encrypted as soon as possible.
+
+  There were no known CVE vulnerabilities found on this implementation of SSH.
+
+  \subsection{Port 80 - HTTP}
+  Running the nmap http-enum script reveals no pages other than index.html.
+  I would recommend adding a security.txt (https://tools.ietf.org/html/draft-foudil-securitytxt-10) containing contact details in case a third-party finds a vulnerability and wishes to make the CISO aware.
+  Although there is currently no robots.txt, it is important not to list any admin or secure pages if one is ever added.
+
+  An nmap vulnerability scan of the port revealed no known CSRF or XSS vulnerabilities.
+
+  \subsection{Port 443 - HTTPS}
+  The server only supports TLS 1.2 and 1.3, which is the best option at the moment as not all clients support TLS 1.2 yet.
+  The server also prefers to use the more secure TLS 1.3, which is what I would recommend.
+  The following cipher suites are supported.
+  TLS 1.3:
+  \begin{itemize}
+    \item TLS\_AES\_256\_GCM\_SHA384
+    \item TLS\_CHACHA20\_POLY1305\_SHA256
+    \item TLS\_AES\_128\_GCM\_SHA256
+  \end{itemize}
+  TLS 1.2:
+  \begin{itemize}
+    \item TLS\_ECDHE\_RSA\_WITH\_AES\_128\_GCM\_SHA256
+    \item TLS\_ECDHE\_RSA\_WITH\_AES\_128\_CBC\_SHA256
+  \end{itemize}
+
+  In general these cipher suites are deemed secure by modern standards, and achieve an A+ score on SSLLabs.
+  That being said, I would recommend disabling TLS\_ECDHE\_RSA\_WITH\_AES\_128\_CBC\_SHA256 or changing it to the 256-bit AES version.
+  CBC AES with a 128-bit key is now considered weak by modern standards.
+
+  An nmap vulnerability scan of port 443 revealed no known CSRF or XSS vulnerabilities.
+  However, the server appears to be vulnerable to a Denial-of-Service attack on an Apache server (CVE-2011-3192).
+  If the Apache server is hosted behind nginx, I would recommend ensuring that Apache only listens on localhost (127.0.0.1) to reduce the attack surface.
+
+  The certificate appears to be a Let's Encrypt certificate with a three month validity.
+  I generally would recommend a longer certificate validity period (12 months), however 3 months is the maximum length for Let's Encrypt so that cannot change.
+
+  \subsection{Ports 135/139}
+  These ports are shown as filtered due to no response being received.
+  If these are not required, then ensure they are closed.
+  I have not been able to find any vulnerabilities or access any services on either of these ports, so if they are required they appear to be secure.
+
+  \subsection{Summary}
+  I recommend the following changes:
+  \begin{itemize}
+    \item Enforce encrypted hard-drives as standard
+    \item Either remove the 128-bit AES CBC cipher suite or upgrade it to the 256-bit version
+    \item Check if ports 135/139 are open. Close them if not needed
+    \item Invest in some improved DoS protection
+  \end{itemize}
+
+  \section{Explain the System}
+
+  \section{Extend the System}
 \end{document}
