@@ -101,7 +101,7 @@
   As the certificate validation is performed by the certificate holder (server), the client does not need to reveal their browsing habits to a third-party, improving privacy.
 
   On this server, OCSP Stapling is enabled, and it appears the stapled certificate is updated on a weekly basis.
-  However, the OCSP "Must-Staple" flag is not enabled.
+  However, the OCSP ``Must-Staple'' flag is not enabled.
   This flag, if enabled, tells browsers to drop the connection if no valid certificate is stapled, rather than reaching out to the OCSP server themselves.
   The privacy gain of enabling this flag is minimal, so this is not a major concern.
 
@@ -122,22 +122,23 @@
   \end{verbatim}
 
   This header provides improved security, although could be improved.
-  The "report-uri" flag sends reports about violations of the policy to the given URL.
+
+  The ``report-uri'' flag sends reports about violations of the policy to the given URL.
   This is very useful in a development environment when testing the CSP, however for a production website I would recommend removing it to ensure the CSP is enforced.
 
-  The "upgrade-insecure-requests" flag tells the client to upgrade any HTTP link to HTTPS in case any legacy links exist.
+  The ``upgrade-insecure-requests'' flag tells the client to upgrade any HTTP link to HTTPS in case any legacy links exist.
   As this is a new website it would be best practice to make any links HTTPS anyway, however adding this flag acts as a safeguard.
 
-  The "plugin-types" flag only allows the PDF plugin, and other plugins such as Flash/Java Applets will be blocked.
+  The ``plugin-types'' flag only allows the PDF plugin, and other plugins such as Flash/Java Applets will be blocked.
   This is much more secure than having no CSP, however I did not find any PDF files within the website.
-  If no PDF files exist on the website, then this flag could be removed and replaced with an "object-src 'none'" flag to block all plugins.
+  If no PDF files exist on the website, then this flag could be removed and replaced with an ``object-src `none' '' flag to block all plugins, which would be slightly more secure.
 
-  The "frame-ancestors" and "*-src" flags tell the client where they can fetch resources from (up to two available sources).
-  The 'self' configuration tells the client that resources can only be collected from the same URL as the webpage, this is deemed secure.
-  The 'img-src' flag allows images to be collected from any HTTPS URL.
-  This is not as secure as a specified URL (such as in 'style-src'), however is still deemed secure enough to be acceptable.
-  The 'font-src' flag has 'data:' specified as a source, this is deemed insecure as an attacker could inject arbitrary data.
-  This should be changed out for 'https:' as a priority.
+  The ``frame-ancestors'' and ``*-src'' flags tell the client where they can fetch resources from (up to two available sources).
+  The `self' configuration tells the client that resources can only be collected from the same URL as the webpage, this is deemed secure.
+  The `https:' flag allows images to be collected from any HTTPS URL.
+  This is not as secure as a specified URL (such as in `style-src'), however is still deemed secure enough to be acceptable.
+  The `font-src' flag has `data:' specified as a source, this is deemed insecure as an attacker could inject arbitrary data.
+  This should be changed out for `https:' as a priority.
 
   \section{Extend the System}
 
