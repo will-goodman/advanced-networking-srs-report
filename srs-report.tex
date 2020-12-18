@@ -97,25 +97,30 @@
   \subsection{Host-Strict-Transport-Security}
   HSTS requires browsers to use HTTPS instead of HTTP for a set period of time.
   If a browser cannot ensure the security of the connection, for example if it does not trust the provided certificate, according to the specification it should terminate the connection.
-  This helps prevent Man-in-the-Middle attacks by using an encrypted connection rather than plaintext which can be altered.
+  This helps prevent Man-in-the-Middle attacks by using an encrypted connection (HTTPS) rather than plaintext which can be altered (HTTP).
+
   On this server, HSTS is enabled with a period of 31,536,000 seconds (one year).
+
   One vulnerability of HSTS is if the initial connection, or the first connection after the period expires, is over HTTP.
-  To help prevent this HSTS can be preloaded into browsers so that they know this server requires HTTPS before sending any requests.
-  However, this server is not preloaded.
-  The long expiration period reduces the risk, however for optimal security the server should be preloaded in browsers.
+  To help prevent this, HSTS can be preloaded into browsers so that they know a server uses HSTS (and supports HTTPS) before sending any requests.
+  However, the servers which can be preloaded must be statically set in browsers, and this server is not preloaded by any of the main browsers.
+  
+  HSTS still provides a security benefit in this instance, and the long timeout period reduces how often a plaintext packet may be sent.
+  However, for the full benefit this browser would need to be preloaded.
 
   \subsection{Online Certificate Status Protocol Stapling}
   OCSP Stapling allows a server to append (staple) a time-stamped OCSP response signed by a Certificate Authority to the initial TLS handshake.
-  As the stapled certificate must be signed by the CA, they cannot be faked.
-  As the certificate validation is performed by the certificate holder (server), the client does not need to reveal their browsing habits to a third-party, improving privacy.
-
+  This has two main benefits: performance and privacy.
+  As the server contacts the OCSP server, only one request needs to be made as opposed to one request per client if OCSP stapling was not used.
+  Since the clients never need to contact the OCSP server (the stapled certificate must be signed by the CA, so cannot be faked), the clients' browsing habits are never revealed to a third-party.
+  
   On this server, OCSP Stapling is enabled, and it appears the stapled certificate is updated on a weekly basis.
+
   However, the OCSP ``Must-Staple'' flag is not enabled.
-  This flag, if enabled, tells browsers to drop the connection if no valid certificate is stapled, rather than reaching out to the OCSP server themselves.
-  The privacy gain of enabling this flag is minimal, so this is not a major concern.
+  I explain further in section 3.2 the benefits of enabling this flag.
 
   \subsection{Content Security Policy}
-  A Content Security policy ("content-security-policy" header) restricts how resources within the browser, such as JavaScript or CSS.
+  A Content Security policy ("content-security-policy" header) restricts what resources within the browser, such as JavaScript or CSS, can do.
   It can help protect against Cross-Site-Scripting attacks.
 
   The server has the following content-security-policy header:
@@ -167,7 +172,8 @@
 
 
   \subsection{Enforced OCSP Stapling}
-  This was also covered in section 2.2.
+  This was also briefly mentioned in section 2.2.
+  
   On this server, the ``Must-Staple'' flag is disabled, meaning that if no OCSP signature is stapled to the certificate, the client will contact an OCSP server itself to check if the certificate is valid.
   If no response is received from the OCSP server, then the client defaults to assume the certificate is valid.
   This has a clear security flaw, as all an attacker needs to do is block the client's OCSP request.
