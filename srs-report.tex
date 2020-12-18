@@ -10,7 +10,8 @@
   \maketitle
 
   \section{Assess the System}
-  I began reviewing the system by using nmap to perform port scans.
+  In this section I analysed the system and make some recommendations to improve the existing security techniques being used.
+
   The server was identified as a Debian (10 or greater) server with the following open ports:
   \begin{itemize}
     \item 22 - SSH
@@ -27,8 +28,8 @@
   Ideally this port should only be open if it is really required.
   If it is not completely necessary, then disable SSH.
 
-  Only public key encryption is enabled, which reduces the risks as brute-forcing passwords is not possible.
-  It is imperative that the public keys are kept secure on the devices where they are stored.
+  Only public key encryption is enabled, which reduces the security risks as brute-forcing passwords is not possible.
+  However, it is imperative that the keys are kept secure on the devices where they are stored.
   If encrypted hard-drives are not already part of the security policy, they should be encrypted as soon as possible.
 
   There were no known CVE vulnerabilities found on this implementation of SSH.
@@ -40,32 +41,39 @@
 
   An nmap vulnerability scan of the port revealed no known CSRF or XSS vulnerabilities.
 
+  Although HTTP has largely been surpassed by HTTPS, this port should still be left open as HSTS preloading does not appear to be in place for this system (discussed further in section 2.1).
+
   \subsection{Port 443 - HTTPS}
-  The server only supports TLS 1.2 and 1.3, which is the best option at the moment as not all clients support TLS 1.2 yet.
+  The server only supports TLS 1.2 and 1.3.
+  This is the best option at the moment as TLS 1.3 is still in development and not supported by all clients.
   The server also prefers to use the more secure TLS 1.3, which is what I would recommend.
-  The following cipher suites are supported.
-  TLS 1.3:
+  
+  The following cipher suites are supported:
+  \paragraph{TLS 1.3}
   \begin{itemize}
     \item TLS\_AES\_256\_GCM\_SHA384
     \item TLS\_CHACHA20\_POLY1305\_SHA256
     \item TLS\_AES\_128\_GCM\_SHA256
   \end{itemize}
-  TLS 1.2:
+  \paragraph{TLS 1.2}:
   \begin{itemize}
     \item TLS\_ECDHE\_RSA\_WITH\_AES\_128\_GCM\_SHA256
     \item TLS\_ECDHE\_RSA\_WITH\_AES\_128\_CBC\_SHA256
   \end{itemize}
 
-  In general these cipher suites are deemed secure by modern standards, and achieve an A+ score on SSLLabs.
+  In general these cipher suites are deemed secure by modern standards, and achieve an $A^+$ score on SSLLabs.
   That being said, I would recommend disabling TLS\_ECDHE\_RSA\_WITH\_AES\_128\_CBC\_SHA256 or changing it to the 256-bit AES version.
   CBC AES with a 128-bit key is now considered weak by modern standards.
 
-  An nmap vulnerability scan of port 443 revealed no known CSRF or XSS vulnerabilities.
-  However, the server appears to be vulnerable to a Denial-of-Service attack on an Apache server (CVE-2011-3192).
-  If the Apache server is hosted behind nginx, I would recommend ensuring that Apache only listens on localhost (127.0.0.1) to reduce the attack surface.
-
   The certificate appears to be a Let's Encrypt certificate with a three month validity.
   I generally would recommend a longer certificate validity period (12 months), however 3 months is the maximum length for Let's Encrypt so that cannot change.
+
+  An nmap vulnerability scan of port 443 revealed no known CSRF or XSS vulnerabilities.
+
+  However, the server appears to be vulnerable to a Denial-of-Service attack on an Apache server (CVE-2011-3192).
+  This vulnerability is rated 7.8 (HIGH) on the Common Vulnerability Scoring System Calculator and must be fixed or mitigated as a matter of urgency.
+  If the Apache server is hosted behind nginx, I would recommend ensuring that Apache only listens on localhost (127.0.0.1) to reduce the attack surface.
+  In addition, make sure the version of Apache is up-to-date and potentially look at putting some improved DoS prevention measures in place.
 
   \subsection{Ports 135/139}
   These ports are shown as filtered due to no response being received.
@@ -75,6 +83,7 @@
   \subsection{Summary}
   I recommend the following changes:
   \begin{itemize}
+    \item Fix Apache server so it is not vulnerable to CVE-2011-3192
     \item Enforce encrypted hard-drives as standard
     \item Either remove the 128-bit AES CBC cipher suite or upgrade it to the 256-bit version
     \item Check if ports 135/139 are open. Close them if not needed
