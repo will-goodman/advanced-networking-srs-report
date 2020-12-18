@@ -142,4 +142,53 @@
 
   \section{Extend the System}
 
+  There are a few security features which have not been configured.
+  In this section I will explain what these are, how they could improve security, and the potential risks of not enabling them.
+
+  \subsection{Certificate Authority Authorization (CAA)}
+  A CAA record specifies which Certificate Authorities can issue certificates for a given domain name.
+  Without a CAA record present, any CA can issue a certificate for the domain.
+  This creates a clear security flaw where the security of the domain's certificate relies on the security and integrity of many CAs.
+  
+  If an attacker managed to find a corrupt or insecure CA, they may be able to obtain their own valid certificate for this server's domain.
+  With this certificate they could setup their own server and intercept traffic from users intending to visit your website, without the users knowing.
+
+  I would recommend adding a CAA record specifying that only Let's Encrypt certificates are valid for this domain to reduce the likelihood of this attack.
+  Currently Let's Encrypt is trusted, however it is worth keeping track of their reputation to ensure they themselves do not become corrupt.
+
+
+  \subsection{Enforced OCSP Stapling}
+  This was also covered in section 2.2.
+  On this server, the ``Must-Staple'' flag is disabled, meaning that if no OCSP signature is stapled to the certificate, the client will contact an OCSP server itself to check if the certificate is valid.
+  If no response is received from the OCSP server, then the client defaults to assume the certificate is valid.
+  This has a clear security flaw, as all an attacker needs to do is block the client's OCSP request.
+
+  By enabling the ``Must-Staple'' flag, the client will close the connection if the stapled OCSP signature is missing.
+  This will greatly improve security and should be enabled as soon as possible.
+
+
+  \subsection{Extended Validation Certificate}
+  The certificate provided for the server is a Domain Validation certificate, not Extended Validation.
+  With an EV certificate, the owner of the website goes through an identity verification process.
+  This identity information is then included within the certificate.
+  This is a more in-depth process than for the other options (Organization Validated and Domain Validated).
+
+  One of the benefits of upgrading to an EV certificate is that the website is much more trustworthy.
+  As phishing scams have become more sophisticated, DV certificates have become more common on phishing websites.
+  By upgrading to an EV certificate, any potential users would be able to check with confidence that they are on the correct website before entering any details.
+
+  Currently, I do not believe upgrading to an EV certificate is worth doing.
+  The website does not currently have any webpages where secure information must be entered, so the dangers of someone going to a phishing website are minimal.
+  In addition, Let's Encrypt does not currently offer EV certificates, so you would have to spend money using a different CA.
+  If the website is ever updated to require users to enter sensitive information, for example banking details, then this decision should be reconsidered.
+
+
+  \subsection{Further Features}
+  There are a few features which are currently disabled on the server, and should remain disabled as they are deprecated:
+  \begin{itemize}
+    \item HTTP Public Key Pinning
+    \item SSL v2.0
+    \item 0-RTT Handshakes (not deprecated, although not forward-secret and hence not as secure)
+  \end{itemize}
+
 \end{document}
