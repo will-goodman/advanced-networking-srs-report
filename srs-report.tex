@@ -10,15 +10,15 @@
   \maketitle
 
   \section{Assess the System}
-  In this section I analysed the system and make some recommendations to improve the existing security techniques being used.
+  In this section I analyse the system and make some recommendations to improve the existing security techniques being used.
 
-  The server was identified as a Debian (10 or greater) server with the following open ports:
+  \paragraph{The server was identified as a Debian (10 or greater) server with the following open ports:}
   \begin{itemize}
     \item 22 - SSH
     \item 80 - HTTP (nginx)
     \item 443 - HTTPS (nginx)
   \end{itemize}
-  In addition, the following ports are filtered:
+  \paragraph{In addition, the following ports are filtered:}
   \begin{itemize}
     \item 135
     \item 139
@@ -62,7 +62,8 @@
   \end{itemize}
 
   In general these cipher suites are deemed secure by modern standards, and achieve an $A^+$ score on SSLLabs.
-  That being said, I would recommend disabling TLS\_ECDHE\_RSA\_WITH\_AES\_128\_CBC\_SHA256 or changing it to the 256-bit AES version.
+
+  That being said, I would recommend disabling AES CBC 128-bit or changing it to the 256-bit version.
   CBC AES with a 128-bit key is now considered weak by modern standards.
 
   The certificate appears to be a Let's Encrypt certificate with a three month validity.
@@ -94,9 +95,9 @@
 
   The server has a few specific security features configured, which I explain in more detail in this section.
 
-  \subsection{Host-Strict-Transport-Security}
+  \subsection{Host-Strict-Transport-Security (HSTS)}
   HSTS requires browsers to use HTTPS instead of HTTP for a set period of time.
-  If a browser cannot ensure the security of the connection, for example if it does not trust the provided certificate, according to the specification it should terminate the connection.
+  If a browser cannot ensure the security of the connection (for example if it does not trust the provided certificate) according to the specification it should terminate the connection.
   This helps prevent Man-in-the-Middle attacks by using an encrypted connection (HTTPS) rather than plaintext which can be altered (HTTP).
 
   On this server, HSTS is enabled with a period of 31,536,000 seconds (one year).
@@ -108,7 +109,7 @@
   HSTS still provides a security benefit in this instance, and the long timeout period reduces how often a plaintext packet may be sent.
   However, for the full benefit this browser would need to be preloaded.
 
-  \subsection{Online Certificate Status Protocol Stapling}
+  \subsection{Online Certificate Status Protocol (OCSP) Stapling}
   OCSP Stapling allows a server to append (staple) a time-stamped OCSP response signed by a Certificate Authority to the initial TLS handshake.
   This has two main benefits: performance and privacy.
   As the server contacts the OCSP server, only one request needs to be made as opposed to one request per client if OCSP stapling was not used.
@@ -119,7 +120,7 @@
   However, the OCSP ``Must-Staple'' flag is not enabled.
   I explain further in section 3.2 the benefits of enabling this flag.
 
-  \subsection{Content Security Policy}
+  \subsection{Content Security Policy (CSP)}
   A Content Security policy ("content-security-policy" header) restricts what resources within the browser, such as JavaScript or CSS, can do.
   It can help protect against Cross-Site-Scripting attacks.
 
@@ -173,7 +174,7 @@
 
   \subsection{Enforced OCSP Stapling}
   This was also briefly mentioned in section 2.2.
-  
+
   On this server, the ``Must-Staple'' flag is disabled, meaning that if no OCSP signature is stapled to the certificate, the client will contact an OCSP server itself to check if the certificate is valid.
   If no response is received from the OCSP server, then the client defaults to assume the certificate is valid.
   This has a clear security flaw, as all an attacker needs to do is block the client's OCSP request.
@@ -182,7 +183,7 @@
   This will greatly improve security and should be enabled as soon as possible.
 
 
-  \subsection{Extended Validation Certificate}
+  \subsection{Extended Validation (EV) Certificate}
   The certificate provided for the server is a Domain Validation certificate, not Extended Validation.
   With an EV certificate, the owner of the website goes through an identity verification process.
   This identity information is then included within the certificate.
