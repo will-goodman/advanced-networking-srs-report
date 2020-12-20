@@ -10,14 +10,15 @@
   \maketitle
 
   \section{Assess the System}
-  I began reviewing the system by using nmap to perform port scans.
-  The server was identified as a Debian (10 or greater) server with the following open ports:
+  In this section I analyse the system and make some recommendations to improve the existing security techniques being used.
+
+  \paragraph{The server was identified as a Debian (10 or greater) server with the following open ports:}
   \begin{itemize}
     \item 22 - SSH
     \item 80 - HTTP (nginx)
     \item 443 - HTTPS (nginx)
   \end{itemize}
-  In addition, the following ports are filtered:
+  \paragraph{In addition, the following ports are filtered:}
   \begin{itemize}
     \item 135
     \item 139
@@ -27,8 +28,8 @@
   Ideally this port should only be open if it is really required.
   If it is not completely necessary, then disable SSH.
 
-  Only public key encryption is enabled, which reduces the risks as brute-forcing passwords is not possible.
-  It is imperative that the public keys are kept secure on the devices where they are stored.
+  Only public key encryption is enabled, which reduces the security risks as brute-forcing passwords is not possible.
+  However, it is imperative that the keys are kept secure on the devices where they are stored.
   If encrypted hard-drives are not already part of the security policy, they should be encrypted as soon as possible.
 
   There were no known CVE vulnerabilities found on this implementation of SSH.
@@ -40,32 +41,40 @@
 
   An nmap vulnerability scan of the port revealed no known CSRF or XSS vulnerabilities.
 
+  Although HTTP has largely been surpassed by HTTPS, this port should still be left open as HSTS preloading does not appear to be in place for this system (discussed further in section 2.1).
+
   \subsection{Port 443 - HTTPS}
-  The server only supports TLS 1.2 and 1.3, which is the best option at the moment as not all clients support TLS 1.2 yet.
+  The server only supports TLS 1.2 and 1.3.
+  This is the best option at the moment as TLS 1.3 is still in development and not supported by all clients.
   The server also prefers to use the more secure TLS 1.3, which is what I would recommend.
-  The following cipher suites are supported.
-  TLS 1.3:
+  
+  The following cipher suites are supported:
+  \paragraph{TLS 1.3}
   \begin{itemize}
     \item TLS\_AES\_256\_GCM\_SHA384
     \item TLS\_CHACHA20\_POLY1305\_SHA256
     \item TLS\_AES\_128\_GCM\_SHA256
   \end{itemize}
-  TLS 1.2:
+  \paragraph{TLS 1.2}:
   \begin{itemize}
     \item TLS\_ECDHE\_RSA\_WITH\_AES\_128\_GCM\_SHA256
     \item TLS\_ECDHE\_RSA\_WITH\_AES\_128\_CBC\_SHA256
   \end{itemize}
 
-  In general these cipher suites are deemed secure by modern standards, and achieve an A+ score on SSLLabs.
-  That being said, I would recommend disabling TLS\_ECDHE\_RSA\_WITH\_AES\_128\_CBC\_SHA256 or changing it to the 256-bit AES version.
-  CBC AES with a 128-bit key is now considered weak by modern standards.
+  In general these cipher suites are deemed secure by modern standards, and achieve an $A^+$ score on SSLLabs.
 
-  An nmap vulnerability scan of port 443 revealed no known CSRF or XSS vulnerabilities.
-  However, the server appears to be vulnerable to a Denial-of-Service attack on an Apache server (CVE-2011-3192).
-  If the Apache server is hosted behind nginx, I would recommend ensuring that Apache only listens on localhost (127.0.0.1) to reduce the attack surface.
+  That being said, I would recommend disabling AES CBC 128-bit or changing it to the 256-bit version.
+  CBC AES with a 128-bit key is now considered weak by modern standards.
 
   The certificate appears to be a Let's Encrypt certificate with a three month validity.
   I generally would recommend a longer certificate validity period (12 months), however 3 months is the maximum length for Let's Encrypt so that cannot change.
+
+  An nmap vulnerability scan of port 443 revealed no known CSRF or XSS vulnerabilities.
+
+  However, the server appears to be vulnerable to a Denial-of-Service attack on an Apache server (CVE-2011-3192).
+  This vulnerability is rated 7.8 (HIGH) on the Common Vulnerability Scoring System Calculator and must be fixed or mitigated as a matter of urgency.
+  If the Apache server is hosted behind nginx, I would recommend ensuring that Apache only listens on localhost (127.0.0.1) to reduce the attack surface.
+  In addition, make sure the version of Apache is up-to-date and potentially look at putting some improved DoS prevention measures in place.
 
   \subsection{Ports 135/139}
   These ports are shown as filtered due to no response being received.
@@ -75,6 +84,7 @@
   \subsection{Summary}
   I recommend the following changes:
   \begin{itemize}
+    \item Fix Apache server so it is not vulnerable to CVE-2011-3192
     \item Enforce encrypted hard-drives as standard
     \item Either remove the 128-bit AES CBC cipher suite or upgrade it to the 256-bit version
     \item Check if ports 135/139 are open. Close them if not needed
@@ -85,28 +95,33 @@
 
   The server has a few specific security features configured, which I explain in more detail in this section.
 
-  \subsection{Host-Strict-Transport-Security}
+  \subsection{Host-Strict-Transport-Security (HSTS)}
   HSTS requires browsers to use HTTPS instead of HTTP for a set period of time.
-  If a browser cannot ensure the security of the connection, for example if it does not trust the provided certificate, according to the specification it should terminate the connection.
-  This helps prevent Man-in-the-Middle attacks by using an encrypted connection rather than plaintext which can be altered.
+  If a browser cannot ensure the security of the connection (for example if it does not trust the provided certificate) according to the specification it should terminate the connection.
+  This helps prevent Man-in-the-Middle attacks by using an encrypted connection (HTTPS) rather than plaintext which can be altered (HTTP).
+
   On this server, HSTS is enabled with a period of 31,536,000 seconds (one year).
+
   One vulnerability of HSTS is if the initial connection, or the first connection after the period expires, is over HTTP.
-  To help prevent this HSTS can be preloaded into browsers so that they know this server requires HTTPS before sending any requests.
-  However, this server is not preloaded.
-  The long expiration period reduces the risk, however for optimal security the server should be preloaded in browsers.
+  To help prevent this, HSTS can be preloaded into browsers so that they know a server uses HSTS (and supports HTTPS) before sending any requests.
+  However, the servers which can be preloaded must be statically set in browsers, and this server is not preloaded by any of the main browsers.
+  
+  HSTS still provides a security benefit in this instance, and the long timeout period reduces how often a plaintext packet may be sent.
+  However, for the full benefit this browser would need to be preloaded.
 
-  \subsection{Online Certificate Status Protocol Stapling}
+  \subsection{Online Certificate Status Protocol (OCSP) Stapling}
   OCSP Stapling allows a server to append (staple) a time-stamped OCSP response signed by a Certificate Authority to the initial TLS handshake.
-  As the stapled certificate must be signed by the CA, they cannot be faked.
-  As the certificate validation is performed by the certificate holder (server), the client does not need to reveal their browsing habits to a third-party, improving privacy.
-
+  This has two main benefits: performance and privacy.
+  As the server contacts the OCSP server, only one request needs to be made as opposed to one request per client if OCSP stapling was not used.
+  Since the clients never need to contact the OCSP server (the stapled certificate must be signed by the CA, so cannot be faked), the clients' browsing habits are never revealed to a third-party.
+  
   On this server, OCSP Stapling is enabled, and it appears the stapled certificate is updated on a weekly basis.
-  However, the OCSP ``Must-Staple'' flag is not enabled.
-  This flag, if enabled, tells browsers to drop the connection if no valid certificate is stapled, rather than reaching out to the OCSP server themselves.
-  The privacy gain of enabling this flag is minimal, so this is not a major concern.
 
-  \subsection{Content Security Policy}
-  A Content Security policy ("content-security-policy" header) restricts how resources within the browser, such as JavaScript or CSS.
+  However, the OCSP ``Must-Staple'' flag is not enabled.
+  I explain further in section 3.2 the benefits of enabling this flag.
+
+  \subsection{Content Security Policy (CSP)}
+  A Content Security policy ("content-security-policy" header) restricts what resources within the browser, such as JavaScript or CSS, can do.
   It can help protect against Cross-Site-Scripting attacks.
 
   The server has the following content-security-policy header:
@@ -158,7 +173,8 @@
 
 
   \subsection{Enforced OCSP Stapling}
-  This was also covered in section 2.2.
+  This was also briefly mentioned in section 2.2.
+
   On this server, the ``Must-Staple'' flag is disabled, meaning that if no OCSP signature is stapled to the certificate, the client will contact an OCSP server itself to check if the certificate is valid.
   If no response is received from the OCSP server, then the client defaults to assume the certificate is valid.
   This has a clear security flaw, as all an attacker needs to do is block the client's OCSP request.
@@ -167,7 +183,7 @@
   This will greatly improve security and should be enabled as soon as possible.
 
 
-  \subsection{Extended Validation Certificate}
+  \subsection{Extended Validation (EV) Certificate}
   The certificate provided for the server is a Domain Validation certificate, not Extended Validation.
   With an EV certificate, the owner of the website goes through an identity verification process.
   This identity information is then included within the certificate.
